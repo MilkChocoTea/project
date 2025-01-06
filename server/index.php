@@ -1,5 +1,10 @@
 <?php
 session_start();
+if (isset($_GET['logout']) && $_GET['logout'] == 1) {
+    $logoutMessage = "您因為10分鐘沒有任何動作，而被系統自動登出。";
+} else {
+    $logoutMessage = null;
+}
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // 設定資料庫連線資訊
     $host = "localhost";
@@ -106,6 +111,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             font-family: 'Noto Sans TC', sans-serif;
         }
     </style>
+    <script>
+        window.onload = function() {
+            const message = "<?php echo $logoutMessage; ?>";
+            if (message) {
+                alert(message);
+            }
+        };
+    </script>
 </head>
 <body>
     <div class="login">
