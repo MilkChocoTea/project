@@ -45,13 +45,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 	<link rel="icon" href=".\static\photo/index.ico" type="image/x-icon"/>
     <title>Login</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap');
         * {
             margin: 0;
             padding: 0;
             list-style: none;
         }
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap');
-
         html, body {
             height: 100%;
             font-family: 'Noto Sans TC', sans-serif;
@@ -116,6 +115,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             const message = "<?php echo $logoutMessage; ?>";
             if (message) {
                 alert(message);
+                const url = new URL(window.location.href);
+                url.searchParams.delete('logout');
+                window.history.replaceState({}, document.title, url.toString());
             }
         };
     </script>
