@@ -165,7 +165,7 @@ class MainWindow(QMainWindow):
         self.input = QtWidgets.QLineEdit(self.page7)
         self.input.setGeometry(325,250,200,50)
         self.input.setMaxLength(20)
-        self.createButton("Back", self.page7, (50, 500, 130, 50), self.show_page4)
+        self.createButton("Cancel", self.page7, (50, 500, 130, 50), self.show_page4)
         self.createButton("Add", self.page7, (190, 500, 130, 50), self.page7_add)
 
         pages = [self.page1, self.page2, self.page3, self.page4, self.page5, self.page6, self.page7]
@@ -193,6 +193,7 @@ class MainWindow(QMainWindow):
         return Button
 
     def exit(self):
+        Motor.stopAllPWM()
         sys.exit("Exit")
 
     def show_page2(self, text):
@@ -285,7 +286,7 @@ class MainWindow(QMainWindow):
     def saveMotorData(self):
         setsql.write_sql('MotorRange',[self.Range])
         Motor.MotorRange = setsql.take_range()
-        self.labelminrange.setText(f"PWM：{Motor.MotorRange}")
+        self.labelminrange.setText(f"Initial PWM：{Motor.MotorRange}")
         Motor.Reset()
 
     def page5cancel(self):

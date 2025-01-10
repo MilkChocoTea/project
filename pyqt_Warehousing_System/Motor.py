@@ -51,6 +51,11 @@ class PCA9685:
         time.sleep(0.005)
         self.write(self.__MODE1, oldmode | 0x80)
 
+    def stopPWM(self, channel):
+        self.write(self.__LED0_OFF_H + 4 * channel, 0x10)
+        if self.debug:
+            print(f"Stopped PWM output on channel {channel}")
+
     def setPWM(self, channel, on, off):
         self.write(self.__LED0_ON_L + 4 * channel, on & 0xFF)
         self.write(self.__LED0_ON_H + 4 * channel, on >> 8)
@@ -116,3 +121,9 @@ def to_new_angle(Journey):
 
 def to_new_speed(value):
     return 0.5 if value > 0 else -0.5
+
+def stopAllPWM():
+    for channel in range(16):
+        pwm.stopPWM(channel)
+    if pwm.debug:
+        print("Stopped PWM output on all channels")
