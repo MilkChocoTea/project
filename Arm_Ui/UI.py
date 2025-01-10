@@ -135,6 +135,7 @@ class MainWindow(QMainWindow):
         self.createButton("Save", self.page5, (190, 500, 130, 50), self.saveMotorData)
 
         self.page6 = QtWidgets.QWidget()
+        self.box2_value = [1, 5, 10]
         self.labelangle = []
         self.learnlabel1 = self.createTitle("Learning：",self.page6,'font-size:48px;',10,0)
         self.learnlabel2 = self.createTitle("Data",self.page6,'font-size:24px;',10,80)
@@ -143,8 +144,12 @@ class MainWindow(QMainWindow):
         self.box.setGeometry(70, 70, 300, 50)
         self.createButton("Add", self.page6, (380, 70, 130, 50), self.page6_add)
         self.createButton("Del", self.page6, (520, 70, 130, 50), self.page6_del)
-        self.createTitle("+1",self.page6,'font-size:24px;',30,310)
-        self.createTitle("-1",self.page6,'font-size:24px;',30,370)
+        self.createTitle("Step",self.page6,'font-size:24px;',10,160)
+        self.box2 = QtWidgets.QComboBox(self.page6)
+        self.box2.addItems(list(map(str, self.box2_value)))
+        self.box2.setStyleSheet('font-size:24px;')
+        self.box2.setGeometry(70, 150, 60, 50)
+        self.box2.currentIndexChanged.connect(self.change_box2)
         for i in range(4):
             y = 80 + i * 170
             label = self.createTitle(f"Angle{i}：",self.page6,'font-size:24px;',y,250)
@@ -330,7 +335,7 @@ class MainWindow(QMainWindow):
     def set_angle(self,value,setangle):
         if not (0 <= self.page6_update_value < len(self.learn_data)):
             return
-        self.learn_data[self.page6_update_value][value] += setangle
+        self.learn_data[self.page6_update_value][value] += (setangle * self.page6_set)
         self.update_learn_data(preserve_selection=True)
         for i in range(4):
             self.labelangle[i].setText(f"Angle{i}：{self.learn_data[self.page6_update_value][i]}")
@@ -372,6 +377,9 @@ class MainWindow(QMainWindow):
         self.createPage2Button()
         self.createPage4Button()
         self.show_page4()
+    
+    def change_box2(self):
+        self.page6_set = self.box2_value[self.box2.currentIndex()]
 
     def show_page7(self):
         self.input.clear()
