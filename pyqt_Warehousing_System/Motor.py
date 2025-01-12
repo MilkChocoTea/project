@@ -82,10 +82,9 @@ def test():
     for i in range(4):
         pwm.ServoAngle(i, test[i])
         
-def MotorSpeed(value):
-    max_speed = 2
+def MotorSpeed(value,max_speed):
     if abs(value) <= 5:
-        return -1 if value > 0 else 1
+        return -0.5 if value > 0 else 0.5
     else:
         return -max_speed if value > 0 else max_speed
 

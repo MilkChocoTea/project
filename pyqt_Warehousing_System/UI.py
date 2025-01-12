@@ -60,7 +60,7 @@ class RunMotorWorker(QThread):
                     if pos != Position[y]:
                         value = pos - Position[y]
                         if value != 0:
-                            Position[y] -= Motor.MotorSpeed(value)
+                            Position[y] -= Motor.MotorSpeed(value,2)
                             Motor.pwm.ServoAngle(y, Position[y])
                             self.pwmvalue_updated.emit(Motor.pwmvalue)
                 time.sleep(0.02)
