@@ -2,7 +2,7 @@
 
 ## 系統架構
 
-[系統架構圖](image.png)
+![系統架構圖](image.png)
 
 1. HTML 前端
 
