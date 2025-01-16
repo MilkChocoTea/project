@@ -1,7 +1,8 @@
 <?php
 session_start();
 if (isset($_GET['logout']) && $_GET['logout'] == 1) {
-    $logoutMessage = "您因為10分鐘沒有任何動作，而被系統自動登出。";
+    $logoutMessage = "您因為長時間沒有任何動作，而被系統自動登出。";
+    session_destroy();
 } else {
     $logoutMessage = null;
 }
@@ -26,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($row = pg_fetch_assoc($result)) {
         if ($inputPassword === $row['user_pw']) {
             $_SESSION['username'] = $row['user_id'];
-            header("Location: ./static/page/page1.php");
+            header("Location: ./static/page1.php");
             exit();
         } else {
             echo "密碼錯誤";
@@ -42,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="icon" href=".\static\photo/index.ico" type="image/x-icon"/>
+	<link rel="icon" href="./static/index.ico" type="image/x-icon"/>
     <title>Login</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap');
@@ -56,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             font-family: 'Noto Sans TC', sans-serif;
         }
         body {
-            background-image: url('./static/photo/login.jpg');
+            background-image: url('./static/login.jpg');
             background-repeat: no-repeat;
             background-size: cover;
             display: flex;
