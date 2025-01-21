@@ -1,11 +1,5 @@
 <?php
 session_start();
-if (isset($_GET['logout']) && $_GET['logout'] == 1) {
-    $logoutMessage = "您因為長時間沒有任何動作，而被系統自動登出。";
-    session_destroy();
-} else {
-    $logoutMessage = null;
-}
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // 設定資料庫連線資訊
     $host = "localhost";
