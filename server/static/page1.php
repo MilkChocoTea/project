@@ -72,7 +72,7 @@ $pages = [
         }
         .side {
             height: 100%; width: 12%;
-            background: linear-gradient(90deg,rgba(0,234,249,1)85%,rgba(0,201,255,1)100%);
+            background: linear-gradient(0deg,rgba(0,234,249,1)55%,rgba(0,201,255,1)100%);
             border-radius: 0px 10px 20px 0px;
             color: white;
             text-shadow: black 0.1em 0.1em 0.2em;
