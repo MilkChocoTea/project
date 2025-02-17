@@ -9,12 +9,12 @@ if (!isset($_SESSION['username'])) {
 $pages = [
     [
         'id' => 'page1',
-        'label' => 'Page 1',
+        'label' => '機台們',
         'src' => 'list.php'
     ],
     [
         'id' => 'page2',
-        'label' => 'Page 2',
+        'label' => '人們',
         'src' => 'test.php'
     ]
 ];
@@ -33,7 +33,7 @@ $pages = [
         }
         function resetTimer() {
             clearTimeout(timeout);
-            timeout = setTimeout(logout, 60 * 60 * 1000);
+            timeout = setTimeout(logout, 10 * 60 * 1000);
         }
         window.onload = resetTimer;
         document.onmousemove = resetTimer;
@@ -124,7 +124,8 @@ $pages = [
             display: block;
         }
         iframe {
-            height: 100%; width: 100%;
+            height: 100%; width: 95%;
+            padding: 20px;
             border: none;
         }
     </style>

@@ -13,11 +13,10 @@
             list-style: none;
         }
         html, body {
-            height: 100%;
+            height: 100%; width: 100%;
             font-family: 'Noto Sans TC', sans-serif;
         }
         .list{
-            padding: 20px;
             text-align: center;
             font-size: 24px;
         }
@@ -30,16 +29,24 @@
     <div class="list"><table>
         <thead>
             <tr>
-                <th>001</th>
-                <th>002</th>
-                <th>003</th>
+                <th>機台編號</th>
+                <th>機台名稱</th>
+                <th>狀態</th>
+                <th>狀態更新時間</th>
+                <th>位置</th>
+                <th>備註</th>
+                <th>IP</th>
            </tr>
         </thead>
         <tbody>
             <tr>
-                <td>010</td>
-                <td>020</td>
-                <td>030</td>
+                <td>test001</td>
+                <td>mct001</td>
+                <td>on line</td>
+                <td>2025/02/14</td>
+                <td>ksu</td>
+                <td>none</td>
+                <td>mct001.local</td>
             </tr>
         </tbody>
     </table></div>
