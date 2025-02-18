@@ -15,7 +15,7 @@ $pages = [
     [
         'id' => 'page2',
         'label' => '人們',
-        'src' => 'test.php'
+        'src' => 'staff.php'
     ]
 ];
 ?>
@@ -136,9 +136,7 @@ $pages = [
             <div class="wellcome"><?php echo "<h1>User：" . $_SESSION['username'] . "</h1>"; ?></div>
             <div class="side-page">
                 <?php foreach ($pages as $page) : ?>
-                    <button class="btn" onclick="showpages('<?php echo $page['id']; ?>')">
-                        <?php echo $page['label']; ?>
-                    </button>
+                    <button class="btn" onclick="showpages('<?php echo $page['id']; ?>')"><?php echo $page['label']; ?></button>
                 <?php endforeach; ?>
             </div>
             <div class="logout"><a href='logout.php'>Logout</a></div>
