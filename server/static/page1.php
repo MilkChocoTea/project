@@ -14,6 +14,11 @@ $pages = [
     ],
     [
         'id' => 'page2',
+        'label' => '貨物們',
+        'src' => 'item.php'
+    ],
+    [
+        'id' => 'page3',
         'label' => '人們',
         'src' => 'staff.php'
     ]
@@ -124,7 +129,8 @@ $pages = [
             display: block;
         }
         iframe {
-            height: 100%; width: 95%;
+            height: 870px;
+            width: 1650px;
             padding: 20px;
             border: none;
         }

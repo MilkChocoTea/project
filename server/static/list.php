@@ -41,6 +41,7 @@ $datas = [
             font-size: 24px;
         }
         .table{
+            margin: 0 auto;
             border: 1px;
         }
     </style>
