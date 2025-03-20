@@ -1,7 +1,7 @@
 <?php
+session_start();
 ini_set('session.gc_maxlifetime', 600);
 session_set_cookie_params(600);
-session_start();
 if (!isset($_SESSION['username'])) {
     header("Location: logout.php");
     exit();
@@ -69,14 +69,15 @@ $pages = [
         }
         body {
             background-image: url('page1.jpg');
-            background-repeat: no-repeat;
+            background-repeat: repeat;
+            background-size: auto;
+            background-attachment: fixed;
             backdrop-filter: blur(6px);
-            background-size: cover;
             display: flex;
             justify-content: center;
         }
         .side {
-            height: 100%; width: 12%;
+            height: 95%; width: 12%;
             background: linear-gradient(0deg,rgba(0,234,249,1)55%,rgba(0,201,255,1)100%);
             border-radius: 0px 10px 20px 0px;
             color: white;
@@ -85,9 +86,6 @@ $pages = [
             flex-direction:column;
             text-align: left;
             gap: 20px;
-        }
-        .side-side {
-            height: 100%; width: 100%;
             padding: 1em;
         }
         .side .wellcome {
@@ -109,7 +107,7 @@ $pages = [
             box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.5), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         }
         .btn {
-            width: 80%;
+            width: 100%;
             color: white;
             background: linear-gradient(130deg,rgb(0, 162, 255)0%,rgba(0,234,249,1)55%,rgba(0,201,255,1)100%);
             margin-top: 5px;
@@ -138,15 +136,13 @@ $pages = [
 </head>
 <body>
     <div class="side">
-        <div class="side-side">
-            <div class="wellcome"><?php echo "<h1>User：" . $_SESSION['username'] . "</h1>"; ?></div>
-            <div class="side-page">
-                <?php foreach ($pages as $page) : ?>
-                    <button class="btn" onclick="showpages('<?php echo $page['id']; ?>')"><?php echo $page['label']; ?></button>
-                <?php endforeach; ?>
-            </div>
-            <div class="logout"><a href='logout.php'>Logout</a></div>
+        <div class="wellcome"><?php echo "<h1>User：" . $_SESSION['username'] . "</h1>"; ?></div>
+        <div class="side-page">
+            <?php foreach ($pages as $page) : ?>
+                <button class="btn" onclick="showpages('<?php echo $page['id']; ?>')"><?php echo $page['label']; ?></button>
+            <?php endforeach; ?>
         </div>
+        <div class="logout"><a href='logout.php'>Logout</a></div>
     </div>
     <div class="mid">
         <?php foreach ($pages as $index => $page) : ?>

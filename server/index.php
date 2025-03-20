@@ -1,36 +1,5 @@
 <?php
 session_start();
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    // 設定資料庫連線資訊
-    $host = "localhost";
-    $dbname = "arm_user";
-    $dbuser = "mct";
-    $dbpassword = "00123";
-    $conn = pg_connect("host=$host dbname=$dbname user=$dbuser password=$dbpassword");
-    if (!$conn) {
-        die("資料庫連線失敗");
-    }
-    $inputUsername = $_POST['username'];
-    $inputPassword = $_POST['password'];
-    $query = "SELECT * FROM user_ip WHERE user_id = $1";
-    $result = pg_query_params($conn, $query, array($inputUsername));
-
-    if (!$result) {
-        die("查詢失敗：" . pg_last_error($conn));
-    }
-    if ($row = pg_fetch_assoc($result)) {
-        if ($inputPassword === $row['user_pw']) {
-            $_SESSION['username'] = $row['user_id'];
-            header("Location: ./static/page1.php");
-            exit();
-        } else {
-            echo "密碼錯誤";
-        }
-    } else {
-        echo "用戶名不存在";
-    }
-    pg_close($conn);
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,7 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 </head>
 <body>
     <div class="login">
-        <form class="form" action="index.php" method="POST">
+        <form class="form" action="./static/login.php" method="POST">
             <h1>Login</h1>
             <div class="login_id">
                 <label for="username">User Name</label>

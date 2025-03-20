@@ -1,38 +1,8 @@
 <?php 
 $staffId = $_GET['id'] ?? '';
-$datas = [
-    [
-        'staff_id'      => 'E001',
-        'staff_name'    => 'Alice Chang',
-        'username'      => 'alice',
-        'role'          => 'Operator',
-        'department'    => 'Manufacturing',
-        'contact_info'  => 'alice@example.com / 0912-345-678',
-        'status'        => 'Active',
-        'hire_date'     => '2024-10-01',
-        'password_hash' => 'some_hash_value',
-        'schedule'      => 'Day Shift (08:00 - 17:00)'
-    ],
-    [
-        'staff_id'      => 'E002',
-        'staff_name'    => 'Bob Wang',
-        'username'      => 'bobw',
-        'role'          => 'Maintenance Engineer',
-        'department'    => 'Maintenance',
-        'contact_info'  => 'bob@example.com / 0987-654-321',
-        'status'        => 'Active',
-        'hire_date'     => '2023-06-15',
-        'password_hash' => 'another_hash_value',
-        'schedule'      => 'Night Shift (20:00 - 05:00)'
-    ]
-];
-$data = null;
-foreach ($datas as $d) {
-    if ($d['staff_id'] === $staffId) {
-        $data = $d;
-        break;
-    }
-}
+$api_url = "http://localhost:3000/staff"; // PostgREST API
+$response = file_get_contents($api_url);
+$data = json_decode($response, true);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,61 +25,45 @@ foreach ($datas as $d) {
             font-size: 24px;
         }
         .table{
+            margin: 0 auto;
             border: 1px;
         }
     </style>
 </head>
 <body>
     <div class="list">
-    <?php if ($data): ?>
-        <h1>人員詳細資料</h1>
-        <table>
+    <h2>人員列表</h2>
+    <table>
+        <thead>
             <tr>
-                <th>人員編號</th>
-                <td><?php echo $data['staff_id']; ?></td>
-            </tr>
-            <tr>
-                <th>姓名</th>
-                <td><?php echo $data['staff_name']; ?></td>
-            </tr>
-            <tr>
-                <th>帳號</th>
-                <td><?php echo $data['username']; ?></td>
-            </tr>
-                <tr>
+                <th>人員ID</th>
+                <th>暱稱</th>
+                <th>名稱</th>
                 <th>職位</th>
-                <td><?php echo $data['role']; ?></td>
-            </tr>
-                <tr>
-                <th>隸屬部門</th>
-                <td><?php echo $data['department']; ?></td>
-            </tr>
-                <tr>
-                <th>聯絡方式</th>
-                <td><?php echo $data['contact_info']; ?></td>
-            </tr>
-                <tr>
+                <th>部門</th>
+                <th>日程表</th>
+                <th>聯絡資訊</th>
+                <th>密碼</th>
                 <th>狀態</th>
-                <td><?php echo $data['status']; ?></td>
+                <th>創建於</th>
             </tr>
-                <tr>
-                <th>入職日期</th>
-                <td><?php echo $data['hire_date']; ?></td>
+        </thead>
+        <tbody>
+        <?php foreach ($data as $machine) : ?>
+            <tr>
+                <td><?php echo htmlspecialchars($machine['staff_id']); ?></td>
+                <td><?php echo htmlspecialchars($machine['staff_name']); ?></td>
+                <td><?php echo htmlspecialchars($machine['username']); ?></td>
+                <td><?php echo htmlspecialchars($machine['position']); ?></td>
+                <td><?php echo htmlspecialchars($machine['department']); ?></td>
+                <td><?php echo htmlspecialchars($machine['schedule']); ?></td>
+                <td><?php echo htmlspecialchars($machine['contact_info']); ?></td>
+                <td><?php echo htmlspecialchars($machine['password_hash']); ?></td>
+                <td><?php echo htmlspecialchars($machine['status']); ?></td>
+                <td><?php echo htmlspecialchars($machine['create_at']); ?></td>
             </tr>
-                <tr>
-                <th>密碼雜湊</th>
-                <td><?php echo $data['password_hash']; ?></td>
-            </tr>
-                <tr>
-                <th>排班資訊</th>
-                <td><?php echo $data['schedule']; ?></td>
-            </tr>
-        </table>
-        <?php else: ?>
-            <div class="no-data">
-                查無此人員資料，請確認網址參數是否正確。
-            </div>
-        <?php endif; ?>
+        <?php endforeach; ?>
+        </tbody>
     </div>
     <a href="staff.php">back</a>
 </body>

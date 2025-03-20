@@ -3,35 +3,15 @@ $api_url = "http://localhost:3000/machines"; // PostgREST API
 $response = file_get_contents($api_url);
 $data = json_decode($response, true);
 ?>
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap');
-        * {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        html, body {
-            height: 100%; width: 100%;
-            font-family: 'Noto Sans TC', sans-serif;
-        }
-        .list{
-            text-align: center;
-            font-size: 24px;
-        }
-        .table{
-            margin: 0 auto;
-            border: 1px;
-        }
-    </style>
 </head>
 <body>
     <h2>機器列表</h2>
-    <table>
+    <table border="1">
         <thead>
             <tr>
                 <th>設備編號</th>

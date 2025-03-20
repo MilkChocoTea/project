@@ -1,0 +1,45 @@
+'machine_id' => 'test001', 
+'machine_name' => 'mct001', varchar(20)
+'machine_location' => 'ksu', varchar(20)
+'machine_ip' => 'mct001.local', varchar(30)
+'machine_addtime' => '2025/02/14', TIMESTAMPTZ
+'machine_state' => 1, int
+'machine_statetime' => '2025/02/14', TIMESTAMPTZ
+'machine_remark' => 'none', varchar(50)
+
+'id' => 'test002',
+'name' => 'mct002',
+'state' => 'unline',
+'time' => '2025/02/18',
+'location' => 'ksu',
+'remark' => 'none',
+'ip' => 'mct002.local',
+
+
+CREATE TABLE staff (
+    staff_id SERIAL PRIMARY KEY,
+    staff_name VARCHAR(50) NOT NULL,
+    username VARCHAR(30) UNIQUE NOT NULL,
+    position VARCHAR(15),
+    department VARCHAR(20),
+    schedule TEXT,
+    contact_info VARCHAR(30),
+    password_hash TEXT NOT NULL,
+    status INT DEFAULT 1,
+    create_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+資料庫初始測試資料&API-setting
+
+CREATE TABLE machines (machine_id VARCHAR(20) PRIMARY KEY,machine_name VARCHAR(20) NOT NULL,machine_location VARCHAR(20) NOT NULL,machine_ip VARCHAR(30) NOT NULL,machine_addtime TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,machine_state INT NOT NULL,machine_statetime TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,machine_remark VARCHAR(50));
+INSERT INTO machines (machine_id, machine_name, machine_location, machine_ip, machine_state, machine_remark) VALUES ('test001', 'mct001', 'ksu', 'mct001.local', 1, 'none'),('test002','mct002','R0509','mct002.local',0,'none');
+
+CREATE TABLE staff (staff_id SERIAL PRIMARY KEY,staff_name VARCHAR(50) NOT NULL,username VARCHAR(30) UNIQUE NOT NULL,position VARCHAR(15),department VARCHAR(20),schedule TEXT,contact_info VARCHAR(30),password_hash TEXT NOT NULL,status INT DEFAULT 1,create_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
+insert into staff (staff_name,username,position,department,schedule,contact_info,password_hash,status)values('test','KSUtest','none','ksu','none','line','00123',1),('mct','MCT','none','ksu','none','line','h94m4cjo',1);
+
+GRANT ALL PRIVILEGES ON TABLE machines TO mct;
+GRANT ALL PRIVILEGES ON TABLE staff TO mct;
+GRANT SELECT ON machines TO mct;
+GRANT SELECT ON staff TO mct;
+
+UPDATE staff SET password_hash = '$2y$10$qQJ0nlu/QNNjHsnaVLz8l./Se1lZYdYkC6d.Gfs2gNnLvtG46aFpK' WHERE staff_name = 'test';
