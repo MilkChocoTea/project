@@ -8,26 +8,7 @@ $data = json_decode($response, true);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap');
-        * {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        html, body {
-            height: 100%; width: 100%;
-            font-family: 'Noto Sans TC', sans-serif;
-        }
-        .list{
-            text-align: center;
-            font-size: 24px;
-        }
-        .table{
-            margin: 0 auto;
-            border: 1px;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="./pages.css">
 </head>
 <body>
     <h2>人員列表</h2>

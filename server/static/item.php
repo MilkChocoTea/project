@@ -1,83 +1,51 @@
-<?php 
-$datas = [
-    [
-        'item_id' => 'mct030',
-        'item_name' => 'mct',
-        'category' => 'MCT',
-        'quantity' => 'none',
-        'unit' => 'ksu',
-        'unit_cost' => 'line',
-        'location' => 'none',
-        'reorder_level' => '2025/01/18',
-        'expiry_date' => 'mct123',
-        'supplier' => 'none',
-        'note' => 'none',
-        'last_update' => 'none'
-    ]
-]
+<?php
+$api_url = "http://localhost:3000/item"; // PostgREST API
+$response = file_get_contents($api_url);
+$data = json_decode($response, true);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap');
-        * {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        html, body {
-            height: 100%; width: 100%;
-            font-family: 'Noto Sans TC', sans-serif;
-        }
-        .list{
-            text-align: center;
-            font-size: 24px;
-        }
-        .table{
-            margin: 0 auto;
-            border: 1px;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" type="text/css" href="./pages.css">
 </head>
 <body>
-    <div class="list"><table>
+    <h2>貨物列表</h2>
+    <table>
         <thead>
             <tr>
-                <th>品項編號</th>
-                <th>品項名稱</th>
-                <th>品項類別</th>
+                <th>編號</th>
+                <th>名稱</th>
+                <th>類別</th>
                 <th>數量</th>
-                <th>單位</th>
-                <th>單價</th>
                 <th>存放位置</th>
-                <th>安全庫存</th>
-                <th>有效日期</th>
-                <th>供應商資訊</th>
+                <th>單價</th>
+                <th>供應商</th>
+                <th>入庫時間</th>
+                <th>出庫時間</th>
                 <th>備註</th>
-                <th>最後更新時間</th>
-           </tr>
+                <th>資料更新時間</th>
+            </tr>
         </thead>
         <tbody>
-        <?php foreach ($datas as $data) : ?>
+        <?php foreach ($data as $machine) : ?>
             <tr>
-                <td><?php echo $data['item_id']; ?></td>
-                <td><?php echo $data['item_name']; ?></td>
-                <td><?php echo $data['category']; ?></td>
-                <td><?php echo $data['quantity']; ?></td>
-                <td><?php echo $data['unit']; ?></td>
-                <td><?php echo $data['unit_cost']; ?></td>
-                <td><?php echo $data['location']; ?></td>
-                <td><?php echo $data['reorder_level']; ?></td>
-                <td><?php echo $data['expiry_date']; ?></td>
-                <td><?php echo $data['supplier']; ?></td>
-                <td><?php echo $data['note']; ?></td>
-                <td><?php echo $data['last_update']; ?></td>
+                <td><?php echo htmlspecialchars($machine['item_id']); ?></td>
+                <td><?php echo htmlspecialchars($machine['item_name']); ?></td>
+                <td><?php echo htmlspecialchars($machine['category']); ?></td>
+                <td><?php echo htmlspecialchars($machine['quantity']); ?></td>
+                <td><?php echo htmlspecialchars($machine['location']); ?></td>
+                <td><?php echo htmlspecialchars($machine['unit_price']); ?></td>
+                <td><?php echo htmlspecialchars($machine['supplier']); ?></td>
+                <td><?php echo htmlspecialchars($machine['warehouse_time']); ?></td>
+                <td><?php echo htmlspecialchars($machine['shipping_time']); ?></td>
+                <td><?php echo htmlspecialchars($machine['remark']); ?></td>
+                <td><?php echo htmlspecialchars($machine['last_update']); ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody>
-    </table></div>
+    </table>
 </body>
 </html>

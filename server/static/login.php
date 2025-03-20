@@ -1,6 +1,6 @@
 <?php
 session_start();
-$dsn = "pgsql:host=localhost;port=5432;dbname=arm_user;";
+$dsn = "pgsql:host=localhost;port=5432;dbname=arm;";
 $user = "mct";
 $password = "00123";
 

@@ -1,45 +1,83 @@
-'machine_id' => 'test001', 
-'machine_name' => 'mct001', varchar(20)
-'machine_location' => 'ksu', varchar(20)
-'machine_ip' => 'mct001.local', varchar(30)
-'machine_addtime' => '2025/02/14', TIMESTAMPTZ
-'machine_state' => 1, int
-'machine_statetime' => '2025/02/14', TIMESTAMPTZ
-'machine_remark' => 'none', varchar(50)
 
-'id' => 'test002',
-'name' => 'mct002',
-'state' => 'unline',
-'time' => '2025/02/18',
-'location' => 'ksu',
-'remark' => 'none',
-'ip' => 'mct002.local',
+sudo apt install apache2 php nginx docker docker-compose php-pgsql php-cli php-common php-curl php-mbstring php-xml php-zip
+sudo chmod -R 777 /var/www/html/
+
+nginx
+
+server {
+        listen 443 ssl default_server;
+        listen [::]:443 ssl default_server;
+        ssl_certificate /etc/nginx/ssl/nginx-selfsigned.crt;
+        ssl_certificate_key /etc/nginx/ssl/nginx-selfsigned.key;
+        root /var/www/html;
+        index index.php index.html index.htm index.nginx-debian.html;
+        server_name mct.local;
+        location / {
+                proxy_pass http://localhost:8080/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+                try_files $uri $uri/ =404;
+                proxy_ssl_verify off;
+        }
+        location /api/ {
+                proxy_pass http://localhost:3000/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+                add_header Access-Control-Allow-Origin *;
+                add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE, PATCH";
+                add_header Access-Control-Allow-Headers "Authorization, Content-Type";
+                proxy_ssl_verify off;
+        }
+
+        location /socket.io/ {
+                proxy_pass http://localhost:5000/socket.io/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "Upgrade";
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+}
+
+/home/mct/docker-postgres/docker-compose.yml
+version: '3'
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: mct
+      POSTGRES_PASSWORD: 00123
+      POSTGRES_DB: arm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  postgrest:
+    image: postgrest/postgrest
+    container_name: postgrest_api
+    restart: always
+    depends_on:
+      - db
+    environment:
+      PGRST_DB_URI: "postgres://mct:00123@db:5432/arm"
+      PGRST_DB_SCHEMA: "public"
+      PGRST_DB_ANON_ROLE: "mct"
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
 
 
-CREATE TABLE staff (
-    staff_id SERIAL PRIMARY KEY,
-    staff_name VARCHAR(50) NOT NULL,
-    username VARCHAR(30) UNIQUE NOT NULL,
-    position VARCHAR(15),
-    department VARCHAR(20),
-    schedule TEXT,
-    contact_info VARCHAR(30),
-    password_hash TEXT NOT NULL,
-    status INT DEFAULT 1,
-    create_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-資料庫初始測試資料&API-setting
-
-CREATE TABLE machines (machine_id VARCHAR(20) PRIMARY KEY,machine_name VARCHAR(20) NOT NULL,machine_location VARCHAR(20) NOT NULL,machine_ip VARCHAR(30) NOT NULL,machine_addtime TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,machine_state INT NOT NULL,machine_statetime TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,machine_remark VARCHAR(50));
-INSERT INTO machines (machine_id, machine_name, machine_location, machine_ip, machine_state, machine_remark) VALUES ('test001', 'mct001', 'ksu', 'mct001.local', 1, 'none'),('test002','mct002','R0509','mct002.local',0,'none');
-
-CREATE TABLE staff (staff_id SERIAL PRIMARY KEY,staff_name VARCHAR(50) NOT NULL,username VARCHAR(30) UNIQUE NOT NULL,position VARCHAR(15),department VARCHAR(20),schedule TEXT,contact_info VARCHAR(30),password_hash TEXT NOT NULL,status INT DEFAULT 1,create_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
-insert into staff (staff_name,username,position,department,schedule,contact_info,password_hash,status)values('test','KSUtest','none','ksu','none','line','00123',1),('mct','MCT','none','ksu','none','line','h94m4cjo',1);
-
-GRANT ALL PRIVILEGES ON TABLE machines TO mct;
-GRANT ALL PRIVILEGES ON TABLE staff TO mct;
-GRANT SELECT ON machines TO mct;
-GRANT SELECT ON staff TO mct;
-
-UPDATE staff SET password_hash = '$2y$10$qQJ0nlu/QNNjHsnaVLz8l./Se1lZYdYkC6d.Gfs2gNnLvtG46aFpK' WHERE staff_name = 'test';
+sudo docker-compose up -d
+sudo docker exec -i postgres_db psql -U mct -d arm < arm.sql
+sudo docker exec -it postgres_db psql -U mct -d arm
