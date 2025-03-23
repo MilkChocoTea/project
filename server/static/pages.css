@@ -8,17 +8,12 @@ html, body {
     height: 100%; width: 100%;
     font-family: 'Noto Sans TC', sans-serif;
 }
-.list {
-    text-align: center;
-    font-size: 24px;
-}
 table {
     margin: 0 auto;
     border-collapse: collapse;
     width: 90%;
 }
 th, td {
-    border: 1px solid #000;
     padding: 10px;
     text-align: center;
 }

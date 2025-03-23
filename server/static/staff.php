@@ -3,14 +3,6 @@ $api_url = "http://localhost:3000/staff"; // PostgREST API
 $response = file_get_contents($api_url);
 $data = json_decode($response, true);
 ?>
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="./pages.css">
-</head>
-<body>
     <h2>人員列表</h2>
     <table>
         <thead>
@@ -44,5 +36,3 @@ $data = json_decode($response, true);
         <?php endforeach; ?>
         </tbody>
     </table>
-</body>
-</html>

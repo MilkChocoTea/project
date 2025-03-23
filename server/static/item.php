@@ -3,15 +3,6 @@ $api_url = "http://localhost:3000/item"; // PostgREST API
 $response = file_get_contents($api_url);
 $data = json_decode($response, true);
 ?>
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <link rel="stylesheet" type="text/css" href="./pages.css">
-</head>
-<body>
     <h2>貨物列表</h2>
     <table>
         <thead>
@@ -47,5 +38,3 @@ $data = json_decode($response, true);
         <?php endforeach; ?>
         </tbody>
     </table>
-</body>
-</html>

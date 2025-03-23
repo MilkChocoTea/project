@@ -8,17 +8,14 @@ if (!isset($_SESSION['username'])) {
 }
 $pages = [
     [
-        'id' => 'page1',
         'label' => '機台們',
         'src' => 'list.php'
     ],
     [
-        'id' => 'page2',
         'label' => '貨物們',
         'src' => 'item.php'
     ],
     [
-        'id' => 'page3',
         'label' => '人們',
         'src' => 'staff.php'
     ]
@@ -31,31 +28,6 @@ $pages = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="index.ico" type="image/x-icon"/>
     <title>機械手臂倉儲系統 - 監控系統</title>
-    <script>
-        let timeout;
-        function logout() {
-            window.location.href = 'logout.php';
-        }
-        function resetTimer() {
-            clearTimeout(timeout);
-            timeout = setTimeout(logout, 10 * 60 * 1000);
-        }
-        window.onload = resetTimer;
-        document.onmousemove = resetTimer;
-        document.onkeypress = resetTimer;
-        document.onclick = resetTimer;
-        document.onscroll = resetTimer;
-        function showpages(pageId) {
-            const contents = document.querySelectorAll('.content');
-            contents.forEach((content) => {
-                content.classList.remove('active');
-            });
-            const target = document.getElementById(pageId);
-            if (target) {
-                target.classList.add('active');
-            }
-        }
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap');
         * {
@@ -117,7 +89,7 @@ $pages = [
             font-size: 20px;
             box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.5), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         }
-        .mid {
+        .list {
             height: 100%; width: 88%;
         }
         .content {
@@ -132,24 +104,91 @@ $pages = [
             padding: 20px;
             border: none;
         }
+        table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 90%;
+}
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #ddd;
+        }
     </style>
 </head>
+    <script>
+        let timeout;
+        function logout() {
+            window.location.href = 'logout.php';
+        }
+        function resetTimer() {
+            clearTimeout(timeout);
+            timeout = setTimeout(logout, 10 * 60 * 1000);
+        }
+        window.onload = resetTimer;
+        document.onmousemove = resetTimer;
+        document.onkeypress = resetTimer;
+        document.onclick = resetTimer;
+        document.onscroll = resetTimer;
+        function showpages(pageId) {
+            fetch(pageId)                         // 對 page1.php 或 page2.php 發出 GET 請求
+                .then(response => response.text()) // 以文字 (HTML) 形式接收回應
+                .then(html => {
+                // 將回傳的 HTML 塞進 #content 區塊
+                    document.getElementById('content').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('載入失敗:', error);
+                });
+        }
+    </script>
 <body>
     <div class="side">
         <div class="wellcome"><?php echo "<h1>User：" . $_SESSION['username'] . "</h1>"; ?></div>
         <div class="side-page">
             <?php foreach ($pages as $page) : ?>
-                <button class="btn" onclick="showpages('<?php echo $page['id']; ?>')"><?php echo $page['label']; ?></button>
+                <button class="btn" onclick="showpages('<?php echo $page['src']; ?>')"><?php echo $page['label']; ?></button>
             <?php endforeach; ?>
         </div>
         <div class="logout"><a href='logout.php'>Logout</a></div>
     </div>
-    <div class="mid">
-        <?php foreach ($pages as $index => $page) : ?>
-            <div id="<?php echo $page['id']; ?>" class="content <?php echo $index === 0 ? 'active' : ''; ?>">
-                <iframe src="<?php echo $page['src']; ?>"></iframe>
-            </div>
+    <div class="list" id="content">
+    <?php
+        $api_url = "http://localhost:3000/machines"; // PostgREST API
+        $response = file_get_contents($api_url);
+        $data = json_decode($response, true);
+    ?>
+    <h2>機器列表</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>設備編號</th>
+                <th>名稱</th>
+                <th>位置</th>
+                <th>IP</th>
+                <th>狀態</th>
+                <th>新增時間</th>
+                <th>狀態時間</th>
+                <th>備註</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($data as $machine) : ?>
+            <tr>
+                <td><?php echo htmlspecialchars($machine['machine_id']); ?></td>
+                <td><?php echo htmlspecialchars($machine['machine_name']); ?></td>
+                <td><?php echo htmlspecialchars($machine['machine_location']); ?></td>
+                <td><?php echo htmlspecialchars($machine['machine_ip']); ?></td>
+                <td><?php echo htmlspecialchars($machine['machine_state']); ?></td>
+                <td><?php echo htmlspecialchars($machine['machine_addtime']); ?></td>
+                <td><?php echo htmlspecialchars($machine['machine_statetime']); ?></td>
+                <td><?php echo htmlspecialchars($machine['machine_remark']); ?></td>
+            </tr>
         <?php endforeach; ?>
+        </tbody>
+    </table>
     </div>
 </body>
 </html>
