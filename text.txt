@@ -81,3 +81,7 @@ volumes:
 sudo docker-compose up -d
 sudo docker exec -i postgres_db psql -U mct -d arm < arm.sql
 sudo docker exec -it postgres_db psql -U mct -d arm
+
+CREATE OR REPLACE FUNCTION items_notify() RETURNS trigger AS $$ BEGIN PERFORM pg_notify( 'items_channel',row_to_json(NEW)::text ); RETURN NEW; END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER items_insert_trigger AFTER INSERT OR UPDATE OR DELETE ON item FOR EACH ROW EXECUTE PROCEDURE items_notify();

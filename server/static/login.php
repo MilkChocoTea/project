@@ -20,7 +20,7 @@ try {
             $verify = password_verify($password, $user['password_hash']);
             if ($verify) {
                 $_SESSION['username'] = $user['staff_name']; // 設定 Session
-                header("Location: page1.php"); // 登入成功導向首頁
+                header("Location: main.php"); // 登入成功導向首頁
                 exit;
             } else {
                 exit;

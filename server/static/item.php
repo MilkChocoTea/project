@@ -3,7 +3,7 @@ $api_url = "http://localhost:3000/item"; // PostgREST API
 $response = file_get_contents($api_url);
 $data = json_decode($response, true);
 ?>
-    <h2>貨物列表</h2>
+<h2>貨物列表</h2>
     <table>
         <thead>
             <tr>
@@ -20,7 +20,7 @@ $data = json_decode($response, true);
                 <th>資料更新時間</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="item-table-body">
         <?php foreach ($data as $machine) : ?>
             <tr>
                 <td><?php echo htmlspecialchars($machine['item_id']); ?></td>
