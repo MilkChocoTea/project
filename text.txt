@@ -1,3 +1,38 @@
+機器狀態列表
+
+編號：100
+描述：關機
+
+編號：200
+描述：待機
+
+編號：201
+描述：編輯路線中
+
+編號：202
+描述：設置原點
+
+編號：300
+描述：機台運作中
+
+編號：301
+描述：機台運作中暫停
+
+編號：302
+描述：機台回歸原位
+
+編號：400
+描述：故障
+
+編號：401
+描述：機台資料庫錯誤
+
+編號：402
+描述：機台中斷
+
+編號：500
+描述：維修中
+
 
 sudo apt install apache2 php nginx docker docker-compose php-pgsql php-cli php-common php-curl php-mbstring php-xml php-zip
 sudo chmod -R 777 /var/www/html/

@@ -1,6 +1,7 @@
 import psycopg2
 import subprocess
 import sys
+import update
 
 def check_user_exists():
     subprocess.check_call(["sudo", "-u", "postgres", "psql","-c","ALTER USER postgres WITH PASSWORD '00123';"])
@@ -90,6 +91,12 @@ def check_table():
                 try:
                     cursor.execute("CREATE TABLE C (pwm0 int,pwm1 int,pwm2 int,pwm3 int);")
                     cursor.execute("INSERT INTO C (pwm0, pwm1, pwm2, pwm3) VALUES (0, 10, 70, 20), (10, 10, 95, 20), (10, 10, 95, 90), (0, 10, 70, 90), (0, 0, 0, 90);")
+                    print("Table C configured successfully！")
+                except:
+                    pass
+                try:
+                    cursor.execute("CREATE TABLE machine (machine_id VARCHAR(20) PRIMARY KEY,machine_name VARCHAR(20) NOT NULL,machine_location VARCHAR(20) NOT NULL,machine_ip VARCHAR(30) NOT NULL,machine_addtime TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,machine_state INT NOT NULL);")
+                    cursor.execute("INSERT INTO machine (machine_id, machine_name, machine_location, machine_ip, machine_state) VALUES ('test001','mct001','ksu','mct001.local','100');")
                     print("Table C configured successfully！")
                 except:
                     pass
@@ -199,3 +206,19 @@ def add_table(tableName):
                 cursor.execute(f"INSERT INTO {tableName} (pwm0, pwm1, pwm2, pwm3) VALUES (0, 0, 0, 90);")
     except Exception as e:
         print(f"An error occurred while creating the table：{e}")
+
+def state_update(value):
+    try:
+        with psycopg2.connect(
+            dbname="armconfig",
+            user="mct",
+            password="mct123",
+            host="localhost",
+            port="5432"
+        ) as connection:
+            connection.autocommit = True
+            with connection.cursor() as cursor:
+                cursor.execute(f"UPDATE machine SET machine_state = '{value}';")
+    except Exception as e:
+        print(f"An error occurred while creating the table：{e}")
+    update.update_to_server(value)

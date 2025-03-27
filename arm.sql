@@ -8,6 +8,8 @@ CREATE TABLE staff (staff_id SERIAL PRIMARY KEY,staff_name VARCHAR(50) NOT NULL,
 insert into staff (staff_name,username,position,department,schedule,contact_info,password_hash,status)values('test','KSUtest','none','ksu','none','line','$2y$10$qQJ0nlu/QNNjHsnaVLz8l./Se1lZYdYkC6d.Gfs2gNnLvtG46aFpK',1);
 CREATE TABLE item (item_id SERIAL PRIMARY KEY,item_name VARCHAR(20) NOT NULL,category VARCHAR(20),quantity INT DEFAULT 1,location VARCHAR(10),unit_price INT DEFAULT 1,supplier VARCHAR(50),warehouse_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,shipping_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,remark VARCHAR(100),last_update TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
 insert into item (item_name,category,quantity,location,unit_price,supplier,remark)values('001','test',10,'B',200,'ksu','none');
+CREATE TABLE serverip (server_id VARCHAR(20) NOT NULL,server_ip VARCHAR(20));
+insert into serverip values('mct','mct.local');
 
 GRANT ALL PRIVILEGES ON DATABASE arm TO mct;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO mct;

@@ -10,7 +10,7 @@ def is_package_installed(package_name):
 
 def install_system():
     print("Check and Install System Packages...")
-    packages = ["python3-pyqt5", "python3-smbus", "i2c-tools","postgresql", "postgresql-client", "python3-psycopg2"]
+    packages = ["python3-pyqt5", "python3-smbus", "i2c-tools","postgresql", "postgresql-client", "python3-psycopg2","python3-requests"]
     for package in packages:
         if is_package_installed(package) == False:
             try:
@@ -89,6 +89,7 @@ class MainWindow(QMainWindow):
         self.learn_button = []
         self.is_paused = False
         self.stacked_widget = QStackedWidget()
+        setsql.state_update(200)
 
         self.page1 = QtWidgets.QWidget()
         SetButton1 = {"Place": [120, 280], "Pick": [570, 280], "Teach" : [350, 280], "Reset" : [120, 470], "Initial" : [570, 470],"Exit" : [350, 470]}
@@ -175,6 +176,7 @@ class MainWindow(QMainWindow):
         self.worker = None
 
     def show_page1(self):
+        setsql.state_update(200)
         self.Data = ["", ""]
         self.stacked_widget.setCurrentWidget(self.page1)
     
@@ -193,10 +195,12 @@ class MainWindow(QMainWindow):
         return Button
 
     def exit(self):
+        setsql.state_update(100)
         Motor.stopAllPWM()
         sys.exit("Exit")
 
     def show_page2(self, text):
+        setsql.state_update(300)
         self.Data[0] = text
         self.page2label.setText(f"{self.Data[0]}")
         self.page2label.adjustSize()
@@ -233,10 +237,12 @@ class MainWindow(QMainWindow):
 
     def toggle_pause_resume(self):
         if self.is_paused:
+            setsql.state_update(300)
             self.worker.resume()
             self.pause_resume_button.setText("Stop")
             self.is_paused = False
         else:
+            setsql.state_update(301)
             self.worker.pause()
             self.pause_resume_button.setText("Keep")
             self.is_paused = True
@@ -257,6 +263,7 @@ class MainWindow(QMainWindow):
         self.pause_resume_button.hide()
 
     def show_page4(self):
+        setsql.state_update(201)
         self.createPage4Button()
         self.stacked_widget.setCurrentWidget(self.page4)
 
@@ -273,6 +280,7 @@ class MainWindow(QMainWindow):
 
     def show_page5(self):
         self.page5cancel()
+        setsql.state_update(202)
         self.stacked_widget.setCurrentWidget(self.page5)
 
     def set_PWM(self,value,setpwm):
