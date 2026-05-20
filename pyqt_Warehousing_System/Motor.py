@@ -80,10 +80,10 @@ class RobotArm:
         設定指定伺服馬達的角度，並自動轉換為 PWM 訊號發送
         """
         # 更新狀態
-        self.current_angles[channel] = angle
+        self.current_angles[channel] = int(round(angle))
         
         # 計算 PWM 值 (沿用原本的公式：Base + 11 * angle)
-        raw_val = self.motor_ranges[channel] + 11 * angle
+        raw_val = self.motor_ranges[channel] + 11 * self.current_angles[channel]
         self.current_pwm[channel] = int(raw_val)
         
         # 發送至硬體 (沿用公式：val * 0.2048)
@@ -134,32 +134,72 @@ class RobotArm:
         計算每一步的移動速度 (原 MotorSpeed)
         """
         if abs(diff) <= 5:
-            return -0.1 if diff > 0 else 0.1
+            return -1 if diff > 0 else 1
         else:
             return -max_speed if diff > 0 else max_speed
 
-    def to_new_angle_direct(self, target_angles):
+    def to_new_angle_direct(self, target_angles, max_speed=2):
         """
-        直接移動到指定角度 (無平滑過渡，用於 Page 6 校正)
+        直線軌跡移動：所有通道同時出發、同時到達。
+        以距離最大的通道為基準，其他通道按比例分配每步移動量。
         """
-        # 計算差值並移動，這裡保留原本的微步移動邏輯會比較順
-        # 但為了校正方便，通常 Page 6 是直接設定到位
-        pass 
-        # 注意：原程式 UI 的 Page 6 用 worker 嗎？
-        # Page 6 原程式是用 to_new_angle (有 sleep)
-        # 建議改為由 UI 迴圈控制，或是這裡簡單實作一個帶 sleep 的 (僅供測試用)
-        
-        current = self.current_angles[:]
-        diffs = [t - c for t, c in zip(target_angles, current)]
-        
-        while any(d != 0 for d in diffs):
+        current = [float(a) for a in self.current_angles]
+        target  = [float(a) for a in target_angles]
+        diffs   = [target[i] - current[i] for i in range(4)]
+        max_diff = max(abs(d) for d in diffs)
+
+        if max_diff == 0:
+            return
+
+        # 每個通道的單步移動量（按比例，最大通道每步 max_speed）
+        steps = [max_speed * d / max_diff for d in diffs]
+
+        while True:
+            remaining = [target[i] - current[i] for i in range(4)]
+            if all(abs(r) < 0.5 for r in remaining):
+                break
+
+            moved = False
             for i in range(4):
-                if diffs[i] != 0:
-                    step = self.calculate_step_speed(diffs[i])
-                    current[i] -= step
-                    diffs[i] -= step
-                    self.set_servo_angle(i, current[i])
+                if abs(remaining[i]) < 0.5:
+                    continue
+                # 不超過目標
+                move = steps[i]
+                if abs(move) > abs(remaining[i]):
+                    move = remaining[i]
+                current[i] += move
+                self.set_servo_angle(i, current[i])
+                moved = True
+
+            if not moved:
+                break
+
             time.sleep(0.02)
+
+        # 確保精確到達目標
+        for i in range(4):
+            self.set_servo_angle(i, target[i])
+
+    def visual_servo_step(self, delta_angle_ch0: float, delta_angle_ch1: float,
+                          max_step: float = 5.0):
+        """
+        視覺閉迴路補正步驟：
+        根據 vision.py 計算出的角度誤差，微調 channel 0 (底座旋轉) 和
+        channel 1 (手臂高低)。
+        delta_angle_chX: 正值→正方向移動，負值→反方向
+        max_step: 單次最大移動角度 (防止暴衝)
+        """
+        adjustments = [
+            (0, delta_angle_ch0),
+            (1, delta_angle_ch1),
+        ]
+        for ch, delta in adjustments:
+            if abs(delta) < 0.5:   # 太小的誤差忽略
+                continue
+            clamped = max(-max_step, min(max_step, delta))
+            new_angle = self.current_angles[ch] + clamped
+            new_angle = max(-90.0, min(180.0, new_angle))
+            self.set_servo_angle(ch, new_angle)
 
 
 # --- 初始化實體 ---

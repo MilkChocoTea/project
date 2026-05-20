@@ -48,9 +48,13 @@ def get_db_connection(db_name=None, user=None, password=None):
 
 # --- 初始化與檢查函式 ---
 
+def initialize_all():
+    check_database()
+    check_table()
+
 def check_user_exists():
     """設定 PostgreSQL 使用者"""
-    print("Configuring database user...")
+    
     try:
         # 修改 postgres 預設密碼
         subprocess.check_call(["sudo", "-u", "postgres", "psql", "-c", f"ALTER USER postgres WITH PASSWORD '{POSTGRES_ADMIN_PASS}';"])
@@ -61,9 +65,9 @@ def check_user_exists():
                 try:
                     cursor.execute("CREATE USER mct WITH PASSWORD 'mct123';")
                     cursor.execute("ALTER USER mct SUPERUSER;")
-                    print("User 'mct' created/configured.")
+                    
                 except psycopg2.errors.DuplicateObject:
-                    print("User 'mct' already exists.")
+                    pass
                 except Exception as e:
                     print(f"Warning during user creation: {e}")
 
@@ -72,23 +76,31 @@ def check_user_exists():
 
 def check_database():
     """檢查並建立 armconfig 資料庫"""
-    print("Configuring database...")
+    
     try:
-        # 使用 mct 連線到 postgres 資料庫來檢查 armconfig 是否存在
         with get_db_connection(db_name="postgres") as conn:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT 1 FROM pg_database WHERE datname = 'armconfig';")
                 if not cursor.fetchone():
                     cursor.execute("CREATE DATABASE armconfig;")
-                    print("Database 'armconfig' created successfully!")
+                    print("[DB] 資料庫建立完成")
                 else:
-                    print("Database 'armconfig' already exists.")
+                    pass
     except Exception as e:
         sys.exit(f"An error occurred while configuring the database: {e}")
 
+    try:
+        with get_db_connection(db_name="armconfig", user=POSTGRES_ADMIN_USER, password=POSTGRES_ADMIN_PASS) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("GRANT ALL ON SCHEMA public TO mct;")
+                cursor.execute("GRANT ALL PRIVILEGES ON DATABASE armconfig TO mct;")
+                
+    except Exception as e:
+        sys.exit(f"An error occurred while granting permissions: {e}")
+
 def check_table():
     """檢查並建立必要的表格與初始資料"""
-    print("Configuring database tables...")
+    
     
     # 定義初始表格結構與資料，避免重複程式碼
     # 格式: (Table Name, Create SQL, Insert SQL)
@@ -124,6 +136,15 @@ def check_table():
             "machine",
             "CREATE TABLE machine (machine_id VARCHAR(20) PRIMARY KEY, machine_name VARCHAR(20) NOT NULL, machine_location VARCHAR(20) NOT NULL, machine_ip VARCHAR(30) NOT NULL, machine_addtime TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, machine_state INT NOT NULL);",
             "INSERT INTO machine (machine_id, machine_name, machine_location, machine_ip, machine_state) VALUES ('test001','mct001','ksu','mct001.local','100');"
+        ),
+        (
+            "vision_calib",
+            """CREATE TABLE vision_calib (
+                id          INT PRIMARY KEY,
+                calib_json  TEXT NOT NULL,
+                updated_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            );""",
+            "SELECT 1;"
         )
     ]
 
@@ -136,11 +157,11 @@ def check_table():
                         cursor.execute(create_sql)
                         # 只有在建立成功時 (代表表格原本不存在) 才插入初始資料
                         cursor.execute(insert_sql)
-                        print(f"Table '{name}' configured successfully!")
+                        
                     except psycopg2.errors.DuplicateTable:
                         # 如果表格已存在，psycopg2 會拋出 DuplicateTable 錯誤
                         # 這裡我們捕捉它並忽略，不做任何事
-                        print(f"Table '{name}' already exists.")
+                        pass
                     except Exception as inner_e:
                          # 捕捉其他特定表格的錯誤，但不中斷整個迴圈
                         print(f"Warning configuring table '{name}': {inner_e}")
@@ -228,4 +249,4 @@ def state_update(value):
         print(f"Error updating machine state locally: {e}")
     
     # 呼叫 update.py 上傳到伺服器
-    update.update_to_server(value)
+    #update.update_to_server(value)
