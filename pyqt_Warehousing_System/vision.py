@@ -45,7 +45,7 @@ class CalibrationData:
         # 幾何：透視變換矩陣
         self.perspective_matrix: np.ndarray | None = None
         # 透視校正後的實際尺寸 (px)
-        self.perspective_size: tuple = (1296, 972)
+        self.perspective_size: tuple = (640, 640)
 
         # 色彩：白平衡增益 (R, G, B 乘數)
         self.wb_gains: list = [1.0, 1.0, 1.0]
@@ -652,3 +652,338 @@ def capture_and_detect(color: str = "red") -> tuple[np.ndarray | None, list[dict
     corrected = vision_system.apply_corrections(frame)
     detections = vision_system.detect_objects(corrected, color=color)
     return corrected, detections
+
+# ══════════════════════════════════════════════
+# ArucoCalibrator — ArUco 自動校準控制器
+# ══════════════════════════════════════════════
+class ArucoCalibrator:
+    """
+    使用 ArUco Marker 自動校準手臂零點偏移量。
+    
+    流程：
+      1. 手臂移到初始位置 [0, 0, 0, 90]
+      2. 偵測 ArUco Marker 中心在畫面中的偏差
+      3. 調整 CH1（左右）讓 Marker 對準畫面水平中心
+      4. 調整 CH0（前後）讓 Marker 對準畫面垂直中心
+      5. 記錄此時的角度偏移量存入資料庫
+    """
+
+    MARKER_SIZE_MM = 24.0          # Marker 實際尺寸 (mm)
+    ARUCO_DICT     = cv2.aruco.DICT_4X4_50
+    TARGET_ID      = 0             # 要追蹤的 Marker ID
+
+    def __init__(self, vision: VisionSystem, arm):
+        self.vision = vision
+        self.arm    = arm
+
+        # ArUco 偵測器
+        aruco_dict   = cv2.aruco.getPredefinedDictionary(self.ARUCO_DICT)
+        params       = cv2.aruco.DetectorParameters()
+        params.adaptiveThreshConstant   = 5
+        params.minMarkerPerimeterRate   = 0.01
+        self.detector = cv2.aruco.ArucoDetector(aruco_dict, params)
+
+        # 控制參數
+        self.kp_x        : float = 0.15   # 水平比例增益 (角度/像素)
+        self.kp_y        : float = 0.15   # 垂直比例增益
+        self.dead_zone   : int   = 8      # 死區 (px)
+        self.converge_px : int   = 10     # 收斂門檻 (px)
+        self.max_iter    : int   = 60     # 最大迭代次數
+        self.loop_delay  : float = 0.25   # 每次迭代等待 (s)
+        self.max_step    : float = 2.0    # 單次最大補正角度（小步慢走）
+
+        # 狀態
+        self.is_running      : bool  = False
+        self.status_callback        = None  # fn(msg, frame)
+        self.calib_offset    : list  = [0.0, 0.0, 0.0, 0.0]
+
+    def _log(self, msg: str, frame=None):
+        if self.status_callback:
+            self.status_callback(msg, frame)
+
+    def detect_marker(self, frame: np.ndarray) -> dict | None:
+        """
+        偵測目標 Marker，回傳中心偏差（以畫面中心為原點）。
+        回傳 {"center": (cx, cy), "corners": ..., "size": px}
+        回傳 None 代表未偵測到。
+        """
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        corners, ids, _ = self.detector.detectMarkers(gray)
+
+        if ids is None:
+            return None
+
+        for i, marker_id in enumerate(ids.flatten()):
+            if marker_id != self.TARGET_ID:
+                continue
+            c   = corners[i][0]
+            cx  = int(c[:, 0].mean())
+            cy  = int(c[:, 1].mean())
+            # 以畫面中心為原點
+            h, w = frame.shape[:2]
+            cx -= w // 2
+            cy  = h // 2 - cy   # y 軸朝上為正
+            size = float(np.linalg.norm(c[0] - c[1]))  # 邊長像素數
+            return {"center": (cx, cy), "corners": corners[i], "size": size}
+
+        return None
+
+    def draw_marker(self, frame: np.ndarray, result: dict) -> np.ndarray:
+        """在畫面上繪製偵測結果"""
+        out = frame.copy()
+        h, w = out.shape[:2]
+        # 畫面中心十字
+        cv2.line(out, (w//2-20, h//2), (w//2+20, h//2), (0, 255, 255), 1)
+        cv2.line(out, (w//2, h//2-20), (w//2, h//2+20), (0, 255, 255), 1)
+        # Marker 輪廓
+        cv2.aruco.drawDetectedMarkers(out, [result["corners"]])
+        # 中心點
+        cx_img = result["center"][0] + w // 2
+        cy_img = h // 2 - result["center"][1]
+        cv2.circle(out, (cx_img, cy_img), 5, (0, 0, 255), -1)
+        cv2.putText(out, f"({result['center'][0]},{result['center'][1]})",
+                    (cx_img + 8, cy_img - 8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        return out
+
+    def _align_marker_ch1(self) -> dict | None:
+        """
+        閉迴路調整 CH1 直到 Marker 對準畫面水平中心。
+        回傳收斂時的偵測結果，失敗回傳 None。
+        """
+        for i in range(self.max_iter):
+            if not self.is_running:
+                return None
+            frame = self.vision.capture()
+            if frame is None:
+                time.sleep(self.loop_delay)
+                continue
+            result = self.detect_marker(frame)
+            preview = self.draw_marker(frame, result) if result else frame
+            if result is None:
+                self._log(f"  [{i+1}] 未偵測到 Marker...", preview)
+                time.sleep(self.loop_delay)
+                continue
+            cx, _ = result["center"]
+            self._log(f"  [{i+1}] 水平偏差={cx}px", preview)
+            if abs(cx) <= self.converge_px:
+                return result
+            if abs(cx) > self.dead_zone:
+                # cx > 0 = Marker 在右側，需減少 PWM（往左拉回）
+                # cx < 0 = Marker 在左側，需增加 PWM（往右推）
+                # 直接操作 PWM 而非角度，避免換算誤差
+                delta_pwm = int(self.kp_x * cx * 15)
+                delta_pwm = max(-30, min(30, delta_pwm))
+                new_pwm = int(self.arm.current_pwm[1] - delta_pwm)
+                duty = int(new_pwm * 0.2048)
+                self.arm.pwm_driver.setPWM(1, 0, duty)
+                self.arm.current_pwm[1] = new_pwm
+            time.sleep(self.loop_delay)
+        return None
+
+    def run(self) -> dict:
+        """
+        PWM 掃描校準流程：
+          點1：手臂移到 [0,0,0,0]，記錄 CH1 Base PWM
+          點2：CH1 PWM 慢慢增加，等 ArUco 出現在畫面中心後停下
+               記錄此時 PWM，對應角度 = 90 度
+          算出每度增量 = (PWM2 - PWM1) / 90
+        """
+        self.is_running = True
+
+        # ── 步驟1：移到 [0,0,0,0] 再打開夾爪避免擋住畫面 ──
+        self._log("移到 [0,0,0,0]...")
+        self.arm.to_new_angle_direct([0, 0, 0, 0])
+        time.sleep(0.3)
+        self._log("打開夾爪 [0,0,0,90]...")
+        self.arm.to_new_angle_direct([0, 0, 0, 90])
+        time.sleep(0.3)
+
+        # ── 點1：記錄此時 CH1 的 PWM（0度）──
+        pwm1 = float(self.arm.current_pwm[1])
+        self._log(f"點1 PWM={pwm1:.0f}（CH1=0度）")
+
+        # 暖機：等攝影機曝光穩定
+        self._log("暖機中...")
+        for _ in range(15):
+            self.vision.capture()
+            time.sleep(0.05)
+
+        # ── 點2：雙向掃描找 ArUco ──
+        pwm_step     = 5        # 每步 PWM 變化量（慢一點）
+        scan_range   = int(11 * 100)  # 最多掃 100 度範圍
+        pwm2         = None
+        found_dir    = 0        # +1 或 -1
+
+        for direction in [1, -1]:   # 先試增加，再試減少
+            if not self.is_running:
+                break
+            dir_name = "增加" if direction == 1 else "減少"
+            self._log(f"往 PWM {dir_name} 方向掃描...")
+            current_pwm = pwm1
+
+            for _ in range(scan_range // pwm_step):
+                if not self.is_running:
+                    break
+                current_pwm += pwm_step * direction
+                duty = int(current_pwm * 0.2048)
+                self.arm.pwm_driver.setPWM(1, 0, duty)
+                self.arm.current_pwm[1] = int(current_pwm)
+                time.sleep(0.15)   # 等馬達到位再拍照
+
+                frame = self.vision.capture()
+                if frame is None:
+                    continue
+
+                result = self.detect_marker(frame)
+                preview = self.draw_marker(frame, result) if result else frame
+                self._log(f"  PWM={current_pwm:.0f} {'偵測到' if result else '搜尋中'}...", preview)
+
+                if result is None:
+                    continue
+
+                cx, _ = result["center"]
+                self._log(f"  Marker 出現！水平偏差={cx}px")
+
+                # PWM增加→手臂往左→Marker從右側進入往左移
+                # cx > 0 = Marker 在右側 → 繼續掃（還沒到中心）
+                # cx ≈ 0 = 對準了
+                # cx < 0 = Marker 過了中心到左側 → 閉迴路微調拉回來
+
+                if abs(cx) <= self.converge_px:
+                    # 已在死區，直接記錄
+                    pwm2 = float(self.arm.current_pwm[1])
+                    found_dir = direction
+                    self._log(f"對準完成！點2 PWM={pwm2:.0f}")
+                    break
+                elif cx < 0:
+                    # Marker 在左側，繼續增加 PWM 讓它往右移到中心
+                    continue
+                else:
+                    # cx > 0，Marker 過了中心到右側，閉迴路微調拉回來
+                    self._log(f"  Marker 過中心(cx={cx})，閉迴路微調...")
+                    aligned = self._align_marker_ch1()
+                    if aligned:
+                        pwm2 = float(self.arm.current_pwm[1])
+                        found_dir = direction
+                        self._log(f"對準完成！點2 PWM={pwm2:.0f}")
+                        break
+
+            if pwm2 is not None:
+                break
+
+            # 這個方向找不到，回到起點再試另一個方向
+            if direction == 1:
+                self._log("此方向未找到，回到起點試另一方向...")
+                duty = int(pwm1 * 0.2048)
+                self.arm.pwm_driver.setPWM(1, 0, duty)
+                self.arm.current_pwm[1] = int(pwm1)
+                time.sleep(0.5)
+
+        if pwm2 is None or not self.is_running:
+            self.is_running = False
+            return {"success": False, "pwm_per_deg": 0,
+                    "message": "雙向掃描完成但未找到 ArUco，請確認 Marker 擺放位置"}
+
+        # ── 計算每度增量 ──
+        # found_dir=+1 表示 PWM 增加對應角度增加
+        pwm_per_deg = (pwm2 - pwm1) / 90.0
+        self._log(f"每度 PWM 增量 = {pwm_per_deg:.3f}（原本 11.0，方向={'正' if found_dir==1 else '負'}）")
+
+        # ── 更新資料庫 ──
+        self._save_pwm_per_deg(pwm_per_deg)
+        self.arm.pwm_per_deg = pwm_per_deg
+
+        msg = f"校準完成！每度增量={pwm_per_deg:.3f}"
+        self._log(msg)
+        # 強制更新 current_angles[1] 為 90 度，讓 to_new_angle_direct 知道目前位置
+        self.arm.current_angles[1] = 90
+        self._log("回到初始位置...")
+        self.arm.to_new_angle_direct([0, 0, 0, 90])
+        self.is_running = False
+        return {"success": True, "pwm_per_deg": pwm_per_deg, "message": msg}
+
+    def _save_pwm_per_deg(self, pwm_per_deg: float):
+        """將每度 PWM 增量存入資料庫"""
+        try:
+            import json as _json
+            with setsql.get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT calib_json FROM vision_calib WHERE id=1;")
+                    row = cur.fetchone()
+                    data = _json.loads(row[0]) if row else {}
+                    data["pwm_per_deg"]    = pwm_per_deg
+                    data["aruco_calibrated"] = True
+                    payload = _json.dumps(data)
+                    cur.execute("""
+                        INSERT INTO vision_calib (id, calib_json, updated_at)
+                        VALUES (1, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT (id) DO UPDATE
+                            SET calib_json = EXCLUDED.calib_json,
+                                updated_at  = EXCLUDED.updated_at;
+                    """, (payload,))
+            # 同時更新 Motor 的計算參數
+            self.arm.pwm_per_deg = pwm_per_deg
+            print(f"[ArUco] pwm_per_deg={pwm_per_deg:.3f} 已存入資料庫")
+        except Exception as e:
+            print(f"[ArUco] 儲存失敗：{e}")
+
+    def _save_offset(self):
+        """將校準偏移量存入資料庫 vision_calib"""
+        try:
+            import json as _json
+            with setsql.get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    # 讀取現有 calib_json
+                    cur.execute("SELECT calib_json FROM vision_calib WHERE id=1;")
+                    row = cur.fetchone()
+                    data = _json.loads(row[0]) if row else {}
+                    data["aruco_offset"] = self.calib_offset
+                    data["aruco_calibrated"] = True
+                    payload = _json.dumps(data)
+                    cur.execute("""
+                        INSERT INTO vision_calib (id, calib_json, updated_at)
+                        VALUES (1, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT (id) DO UPDATE
+                            SET calib_json = EXCLUDED.calib_json,
+                                updated_at  = EXCLUDED.updated_at;
+                    """, (payload,))
+            print("[ArUco] 校準偏移量已存入資料庫")
+        except Exception as e:
+            print(f"[ArUco] 儲存失敗：{e}")
+
+    def load_offset(self) -> list:
+        """從資料庫讀取校準偏移量"""
+        try:
+            import json as _json
+            with setsql.get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT calib_json FROM vision_calib WHERE id=1;")
+                    row = cur.fetchone()
+            if row:
+                data = _json.loads(row[0])
+                self.calib_offset = data.get("aruco_offset", [0.0]*4)
+                print(f"[ArUco] 已讀取校準偏移量：{self.calib_offset}")
+                return self.calib_offset
+        except Exception as e:
+            print(f"[ArUco] 讀取失敗：{e}")
+        return [0.0, 0.0, 0.0, 0.0]
+
+    def stop(self):
+        self.is_running = False
+
+
+# ── 模組級單例 ──
+aruco_calibrator: ArucoCalibrator | None = None
+
+def init_aruco(arm=None) -> ArucoCalibrator | None:
+    """初始化 ArUco 校準器，在 vision.init() 之後呼叫"""
+    global aruco_calibrator
+    if vision_system is None:
+        print("[ArUco] 請先呼叫 vision.init()")
+        return None
+    if arm is None:
+        return None
+    aruco_calibrator = ArucoCalibrator(vision_system, arm)
+    aruco_calibrator.load_offset()
+    return aruco_calibrator

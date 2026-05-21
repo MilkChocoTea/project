@@ -108,7 +108,7 @@ def check_table():
         (
             "tableName", 
             "CREATE TABLE tableName (names VARCHAR(20));",
-            "INSERT INTO tableName (names) VALUES ('MotorRange'),('prepare'),('A'),('B'),('C');"
+            "INSERT INTO tableName (names) VALUES ('MotorRange'),('prepare'),('calib'),('A'),('B'),('C');"
         ),
         (
             "MotorRange",
@@ -145,6 +145,11 @@ def check_table():
                 updated_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             );""",
             "SELECT 1;"
+        ),
+        (
+            "calib",
+            "CREATE TABLE calib (pwm0 int,pwm1 int,pwm2 int,pwm3 int);",
+            "INSERT INTO calib (pwm0, pwm1, pwm2, pwm3) VALUES (0, 75, 60, 90);"
         )
     ]
 
@@ -186,12 +191,27 @@ def take_range():
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM MotorRange;")
-                data = cursor.fetchone() # MotorRange 應該只有一行設定
+                data = cursor.fetchone()
                 if data:
                     return list(data)
-                return [0,0,0,0] # 預設值防呆
+                return [0,0,0,0]
     except Exception as e:
         sys.exit(f"Error retrieving MotorRange: {e}")
+
+def take_pwm_per_deg() -> float:
+    """讀取每度 PWM 增量，預設 11.0"""
+    try:
+        import json as _json
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT calib_json FROM vision_calib WHERE id=1;")
+                row = cursor.fetchone()
+        if row:
+            data = _json.loads(row[0])
+            return float(data.get("pwm_per_deg", 11.0))
+    except Exception:
+        pass
+    return 11.0
 
 def read_sql(tableName):
     try:

@@ -566,7 +566,7 @@ def run_ui():
             # Drop 按鈕：第一個櫃位不可刪
             # prepare 與 MotorRange 不可刪
             protected = {"prepare", "motorrange", "MotorRange"}
-            is_protected = name.lower() in {"prepare", "motorrange"}
+            is_protected = name.lower() in {"prepare", "motorrange", "calib"}
             self.teach_drop_btn.setEnabled(not is_protected)
             if is_protected:
                 self.teach_drop_btn.setStyleSheet(
@@ -802,6 +802,19 @@ def run_ui():
             self.btn_save_calib = QtWidgets.QPushButton("Save Calibration", page)
             self.btn_save_calib.setGeometry(ctrl_x, 484, 180, 36)
             self.btn_save_calib.clicked.connect(self._vision_save_calib)
+
+            # ── Auto Calibrate ──
+            QtWidgets.QLabel("── Auto Calibrate ──", page).setGeometry(ctrl_x, 530, 200, 20)
+
+            self.btn_aruco_run = QtWidgets.QPushButton("Start Calibrate", page)
+            self.btn_aruco_run.setStyleSheet('font-size:20px; background:#2a7ae2; color:white; border-radius:6px;')
+            self.btn_aruco_run.setGeometry(ctrl_x, 554, 160, 36)
+            self.btn_aruco_run.clicked.connect(self._aruco_start)
+
+            self.btn_aruco_stop = QtWidgets.QPushButton("Stop", page)
+            self.btn_aruco_stop.setStyleSheet('font-size:20px; background:#d9534f; color:white; border-radius:6px;')
+            self.btn_aruco_stop.setGeometry(ctrl_x + 168, 554, 70, 36)
+            self.btn_aruco_stop.clicked.connect(self._aruco_stop)
 
             btn_back = QtWidgets.QPushButton("Back", page)
             btn_back.setGeometry(20, 450, 100, 36)
@@ -1067,6 +1080,51 @@ def run_ui():
             import vision
             vision.vision_system.calib.save()
             self.vision_status.setText("Status: Calibration saved to database.")
+
+        def _aruco_start(self):
+            import vision
+            from PyQt5 import QtCore
+            if vision.aruco_calibrator is None:
+                self.vision_status.setText("Status: ArUco calibrator not initialized.")
+                return
+            if vision.aruco_calibrator.is_running:
+                self.vision_status.setText("Status: Already running.")
+                return
+            # 校準程式內部會自動移動手臂（點1:0度 → 點2:90度）
+
+            def on_status(msg, frame=None):
+                self.vision_status.setText(f"Calib: {msg}")
+                if frame is not None:
+                    self._vision_show_frame(frame)
+
+            vision.aruco_calibrator.status_callback = on_status
+
+            class CalibThread(QtCore.QThread):
+                done = QtCore.pyqtSignal(dict)
+                def __init__(self, calibrator):
+                    super().__init__()
+                    self.calibrator = calibrator
+                def run(self):
+                    result = self.calibrator.run()
+                    self.done.emit(result)
+
+            self._calib_thread = CalibThread(vision.aruco_calibrator)
+            self._calib_thread.done.connect(self._aruco_done)
+            self._calib_thread.start()
+            self.vision_status.setText("Status: Auto calibration started...")
+
+        def _aruco_stop(self):
+            import vision
+            if vision.aruco_calibrator:
+                vision.aruco_calibrator.stop()
+            self.vision_status.setText("Status: Calibration stopped.")
+
+        def _aruco_done(self, result: dict):
+            if result['success']:
+                msg = f"Success: {result['message']}"
+            else:
+                msg = f"Failed: {result['message']}"
+            self.vision_status.setText(msg)
 
         def show_page8(self):
             self.stacked_widget.setCurrentWidget(self.page8)

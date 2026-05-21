@@ -67,6 +67,8 @@ class RobotArm:
         
         # 讀取資料庫中的校正參數
         self.motor_ranges = setsql.take_range()
+        # 每度 PWM 增量（預設 11，可由 ArUco 校準更新）
+        self.pwm_per_deg  = setsql.take_pwm_per_deg()
         
         # 初始狀態定義
         self.initial_pos = [0, 0, 0, 90]
@@ -82,8 +84,8 @@ class RobotArm:
         # 更新狀態
         self.current_angles[channel] = int(round(angle))
         
-        # 計算 PWM 值 (沿用原本的公式：Base + 11 * angle)
-        raw_val = self.motor_ranges[channel] + 11 * self.current_angles[channel]
+        # 計算 PWM 值 (Base + pwm_per_deg * angle)
+        raw_val = self.motor_ranges[channel] + self.pwm_per_deg * self.current_angles[channel]
         self.current_pwm[channel] = int(raw_val)
         
         # 發送至硬體 (沿用公式：val * 0.2048)
